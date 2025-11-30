@@ -11,7 +11,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -20,9 +20,9 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  role      Role     @default(Elder)
+  role      String     @default("Elder")
   photoUrl  String?
-  linkedElderIds String[] // This is a list of elder IDs (if family, caregiver, or doctor)
+  linkedElderIds String // This is a list of elder IDs (stored as JSON)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -47,14 +47,14 @@ model ElderProfile {
   dateOfBirth DateTime
   gender    String
   timezone  String
-  primaryConditions String[]
+  primaryConditions String // stored as JSON
 
   // Risk summary fields
-  riskLevel RiskLevel @default(Low)
+  riskLevel String @default("Low")
   hasRecentFallHistory Boolean @default(false)
   riskProfile_recentHospitalization Boolean @default(false)
   riskProfile_recentHospitalizationDate DateTime?
-  riskProfile_recentHospitalizationSeverity Severity?
+  riskProfile_recentHospitalizationSeverity String?
   riskProfile_fallCount30d Int @default(0)
   riskProfile_sosCount30d Int @default(0)
   riskProfile_highBpCount30d Int @default(0)
@@ -76,7 +76,7 @@ model MedicationSchedule {
   elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
   medicationName String
   dosage    String
-  scheduleTimes String[] // Store as JSON, e.g., ["08:00", "20:00"]
+  scheduleTimes String // Store as JSON, e.g., ["08:00", "20:00"]
   notes     String?
 
   medicationIntakes MedicationIntake[]
@@ -91,7 +91,7 @@ model MedicationIntake {
   medicationScheduleId String
   medicationSchedule MedicationSchedule @relation(fields: [medicationScheduleId], references: [id], onDelete: Cascade)
   scheduledTime DateTime
-  status    MedicationIntakeStatus
+  status    String
   recordedByUserId String
   recordedBy User @relation(fields: [recordedByUserId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -103,7 +103,7 @@ model HealthLog {
   id        String   @id @default(cuid())
   elderId   String
   elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
-  type      HealthLogType
+  type      String
   timestamp DateTime @default(now())
   systolic  Int?
   diastolic Int?
@@ -140,7 +140,7 @@ model Hospitalization {
   dischargeDate DateTime?
   reason    String
   facility  String
-  severity  Severity
+  severity  String
 
   @@map("hospitalizations")
 }
@@ -152,12 +152,12 @@ model SosEvent {
   triggeredByUserId String
   triggeredBy User @relation("SosEventTriggeredBy", fields: [triggeredByUserId], references: [id], onDelete: Cascade)
   triggeredAt DateTime @default(now())
-  status    SosStatus @default(Open)
+  status    String @default("Open")
   acknowledgedByUserId String?
-  acknowledgedBy User @relation("SosEventAcknowledgedBy", fields: [acknowledgedByUserId], references: [id])
+  acknowledgedBy User? @relation("SosEventAcknowledgedBy", fields: [acknowledgedByUserId], references: [id])
   acknowledgedAt DateTime?
   resolvedByUserId String?
-  resolvedBy User @relation("SosEventResolvedBy", fields: [resolvedByUserId], references: [id])
+  resolvedBy User? @relation("SosEventResolvedBy", fields: [resolvedByUserId], references: [id])
   resolvedAt DateTime?
   locationLabel String?
   locationLat Float?
@@ -168,41 +168,4 @@ model SosEvent {
   @@map("sos_events")
 }
 
-enum Role {
-  Elder
-  Family
-  Caregiver
-  Doctor
-}
 
-enum RiskLevel {
-  Low
-  Medium
-  High
-}
-
-enum MedicationIntakeStatus {
-  Taken
-  Missed
-  Late
-  Skipped
-}
-
-enum HealthLogType {
-  Fall
-  BP
-  Glucose
-  Note
-}
-
-enum Severity {
-  Low
-  Medium
-  High
-}
-
-enum SosStatus {
-  Open
-  Acknowledged
-  Resolved
-}
