@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(Elder)
+  photoUrl  String?
+  linkedElderIds String[] // This is a list of elder IDs (if family, caregiver, or doctor)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  elderProfile ElderProfile? // If the user is an elder, they have an elder profile
+  medicationIntakes MedicationIntake[] // If they are a caregiver, they might have recorded intakes
+  healthLogsCreated HealthLog[] @relation("HealthLogCreatedBy") // Health logs they created
+  sosEventsTriggered SosEvent[] @relation("SosEventTriggeredBy") // SOS events they triggered
+  sosEventsAcknowledged SosEvent[] @relation("SosEventAcknowledgedBy") // SOS events they acknowledged
+  sosEventsResolved SosEvent[] @relation("SosEventResolvedBy") // SOS events they resolved
+
+  @@map("users")
+}
+
+model ElderProfile {
+  id        String   @id @default(cuid())
+  ownerUserId String @unique
+  owner     User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  fullName  String
+  dateOfBirth DateTime
+  gender    String
+  timezone  String
+  primaryConditions String[]
+
+  // Risk summary fields
+  riskLevel RiskLevel @default(Low)
+  hasRecentFallHistory Boolean @default(false)
+  riskProfile_recentHospitalization Boolean @default(false)
+  riskProfile_recentHospitalizationDate DateTime?
+  riskProfile_recentHospitalizationSeverity Severity?
+  riskProfile_fallCount30d Int @default(0)
+  riskProfile_sosCount30d Int @default(0)
+  riskProfile_highBpCount30d Int @default(0)
+
+  // Relations
+  medicationSchedules MedicationSchedule[]
+  medicationIntakes MedicationIntake[]
+  healthLogs HealthLog[]
+  dailySummaries DailySummary[]
+  hospitalizations Hospitalization[]
+  sosEvents SosEvent[]
+
+  @@map("elder_profiles")
+}
+
+model MedicationSchedule {
+  id        String   @id @default(cuid())
+  elderId   String
+  elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  medicationName String
+  dosage    String
+  scheduleTimes String[] // Store as JSON, e.g., ["08:00", "20:00"]
+  notes     String?
+
+  medicationIntakes MedicationIntake[]
+
+  @@map("medication_schedules")
+}
+
+model MedicationIntake {
+  id        String   @id @default(cuid())
+  elderId   String
+  elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  medicationScheduleId String
+  medicationSchedule MedicationSchedule @relation(fields: [medicationScheduleId], references: [id], onDelete: Cascade)
+  scheduledTime DateTime
+  status    MedicationIntakeStatus
+  recordedByUserId String
+  recordedBy User @relation(fields: [recordedByUserId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("medication_intakes")
+}
+
+model HealthLog {
+  id        String   @id @default(cuid())
+  elderId   String
+  elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  type      HealthLogType
+  timestamp DateTime @default(now())
+  systolic  Int?
+  diastolic Int?
+  glucoseValue Float?
+  note      String?
+  createdByUserId String
+  createdBy User @relation("HealthLogCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@map("health_logs")
+}
+
+model DailySummary {
+  id        String   @id @default(cuid())
+  elderId   String
+  elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  date      DateTime // Only the date part, but we use DateTime and then extract date
+  fallCount Int @default(0)
+  sosCount Int @default(0)
+  highBpEvents Int @default(0)
+  medsTaken Int @default(0)
+  medsMissed Int @default(0)
+  medsLate Int @default(0)
+  medsSkipped Int @default(0)
+
+  @@unique([elderId, date])
+  @@map("daily_summaries")
+}
+
+model Hospitalization {
+  id        String   @id @default(cuid())
+  elderId   String
+  elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  admissionDate DateTime
+  dischargeDate DateTime?
+  reason    String
+  facility  String
+  severity  Severity
+
+  @@map("hospitalizations")
+}
+
+model SosEvent {
+  id        String   @id @default(cuid())
+  elderId   String
+  elder     ElderProfile @relation(fields: [elderId], references: [id], onDelete: Cascade)
+  triggeredByUserId String
+  triggeredBy User @relation("SosEventTriggeredBy", fields: [triggeredByUserId], references: [id], onDelete: Cascade)
+  triggeredAt DateTime @default(now())
+  status    SosStatus @default(Open)
+  acknowledgedByUserId String?
+  acknowledgedBy User @relation("SosEventAcknowledgedBy", fields: [acknowledgedByUserId], references: [id])
+  acknowledgedAt DateTime?
+  resolvedByUserId String?
+  resolvedBy User @relation("SosEventResolvedBy", fields: [resolvedByUserId], references: [id])
+  resolvedAt DateTime?
+  locationLabel String?
+  locationLat Float?
+  locationLng Float?
+  locationAccuracyMeters Float?
+  contextNotes String?
+
+  @@map("sos_events")
+}
+
+enum Role {
+  Elder
+  Family
+  Caregiver
+  Doctor
+}
+
+enum RiskLevel {
+  Low
+  Medium
+  High
+}
+
+enum MedicationIntakeStatus {
+  Taken
+  Missed
+  Late
+  Skipped
+}
+
+enum HealthLogType {
+  Fall
+  BP
+  Glucose
+  Note
+}
+
+enum Severity {
+  Low
+  Medium
+  High
+}
+
+enum SosStatus {
+  Open
+  Acknowledged
+  Resolved
+}

@@ -41,3 +41,4 @@ next-env.d.ts
 #
 /backend/node_modules/
 /backend@nest/node_modules/
+/generated/prisma
