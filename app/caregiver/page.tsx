@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { logout } from '../actions/auth';
+import Link from 'next/link';
 
 const prisma = new PrismaClient();
 
@@ -32,35 +33,38 @@ export default async function CaregiverPage() {
     });
 
     return (
-        <div className="min-h-screen bg-green-50 p-6">
-            <div className="max-w-4xl mx-auto">
-                <header className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-green-800">Caregiver Dashboard</h1>
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50 p-3 sm:p-6">
+            <div className="max-w-5xl mx-auto">
+                <header className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-green-800">🩺 Caregiver Dashboard</h1>
+                        <p className="text-sm text-gray-500">Manage care for your patients</p>
+                    </div>
                     <form action={logout}>
-                        <button className="text-red-600 hover:text-red-800">Logout</button>
+                        <button className="text-red-600 hover:text-red-700 font-medium text-sm">Logout</button>
                     </form>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {elders.map(elder => (
-                        <div key={elder.id} className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                            <div className="flex justify-between items-start">
+                        <div key={elder.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900">{elder.fullName}</h2>
-                                    <p className="text-sm text-gray-500">Risk Level: <span className={`font-bold ${elder.riskLevel === 'High' ? 'text-red-600' : elder.riskLevel === 'Medium' ? 'text-yellow-600' : 'text-green-600'}`}>{elder.riskLevel}</span></p>
+                                    <h2 className="text-lg font-bold text-gray-900">{elder.fullName}</h2>
+                                    <p className="text-xs text-gray-500">
+                                        Risk: <span className={`font-bold ${elder.riskLevel === 'High' ? 'text-red-600' : elder.riskLevel === 'Medium' ? 'text-yellow-600' : 'text-green-600'}`}>{elder.riskLevel}</span>
+                                    </p>
                                 </div>
                                 {elder.sosEvents.length > 0 && (
-                                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded animate-pulse">
-                                        OPEN SOS
+                                    <span className="bg-red-100 text-red-800 text-xs font-semibold px-2 py-1 rounded-full animate-pulse">
+                                        🚨 SOS
                                     </span>
                                 )}
                             </div>
 
-                            <div className="mt-6">
-                                <button className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
-                                    Manage Care
-                                </button>
-                            </div>
+                            <Link href={`/elder-detail/${elder.id}`} className="block w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-center text-sm font-medium">
+                                Manage Care
+                            </Link>
                         </div>
                     ))}
                 </div>

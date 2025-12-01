@@ -15,9 +15,9 @@ export default function SOSButton() {
 
     if (sent) {
         return (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-center">
-                <strong className="font-bold">SOS Sent!</strong>
-                <span className="block sm:inline"> Help is on the way.</span>
+            <div className="bg-green-50 border-2 border-green-400 rounded-lg p-4 text-center">
+                <p className="text-green-800 font-bold text-lg mb-1">✅ SOS Alert Sent!</p>
+                <p className="text-green-700 text-sm">Your family and caregivers have been notified.</p>
             </div>
         );
     }
@@ -26,9 +26,13 @@ export default function SOSButton() {
         <button
             onClick={handleSOS}
             disabled={loading}
-            className="w-full bg-red-600 text-white rounded-full h-32 text-3xl font-bold shadow-lg hover:bg-red-700 transition animate-pulse"
+            className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl h-24 text-2xl font-bold shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 transition-all transform hover:scale-[1.02] active:scale-95 disabled:opacity-50"
         >
-            {loading ? 'Sending...' : 'SOS'}
+            {loading ? (
+                <span>⏳ Sending...</span>
+            ) : (
+                <span>🚨 SOS Emergency</span>
+            )}
         </button>
     );
 }
