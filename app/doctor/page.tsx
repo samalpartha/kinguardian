@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { logout } from '../actions/auth';
 import Link from 'next/link';
+import LinkElderForm from '../components/LinkElderForm';
 
 const prisma = new PrismaClient();
 
@@ -60,6 +61,14 @@ export default async function DoctorPage() {
                             </Link>
                         </div>
                     ))}
+                    {elders.length === 0 && (
+                        <div className="col-span-full">
+                            <div className="text-center py-8 bg-white rounded-lg border border-gray-200 mb-6">
+                                <p className="text-gray-500">No elders linked to your account yet.</p>
+                            </div>
+                            <LinkElderForm />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
